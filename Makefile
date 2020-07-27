@@ -1,5 +1,5 @@
-ossys: main.c
-	gcc -g3 main.c -o ossys
+ossys: ossys.c
+	gcc -g3 ossys.c -o ossys
 
 install:
 	install {distro_desc.sh,ossys} /usr/local/bin
