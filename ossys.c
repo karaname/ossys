@@ -40,7 +40,7 @@ print_osinfo()
   int fd, nb, index = 0;
   char tmpf_buffer[124];
   char tmpf_template[] = "/tmp/dinfo-XXXXXX";
-  char *script_name = "distro_desc.sh";
+  char *script_name = "info.sh";
   char tmpf_name[32];
   char fd_path[20];
   pid_t child;
