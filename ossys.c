@@ -10,6 +10,11 @@
 #include <fcntl.h>
 #include <time.h>
 
+struct system_info {
+  char time_string[15];
+  char tmpf_buffer[124];
+} sys;
+
 static void
 print_sysinfo()
 {
@@ -33,21 +38,22 @@ print_sysinfo()
 }
 
 static void
-print_osinfo()
+osinfo()
 {
   struct utsname un;
-  FILE *tmpf_stream;
-  int fd, nb, index = 0;
-  char tmpf_buffer[124];
-  char tmpf_template[] = "/tmp/dinfo-XXXXXX";
-  char *script_name = "info.sh";
-  char tmpf_name[32];
-  char fd_path[20];
+  uname(&un);
   pid_t child;
 
-  uname(&un);
-  printf("Операционная система: %s\n", un.sysname);
-  printf("Версия ядра: %s\n", un.release);
+  FILE *tmpf_stream;
+  int fd, index = 0;
+
+  char tmpf_template[] = "/tmp/dinfo-XXXXXX";
+  char script_name[] = "info.sh";
+  char tmpf_fd_path[32];
+  char tmpf_name[32];
+
+  //printf("Операционная система: %s\n", un.sysname);
+  //printf("Версия ядра: %s\n", un.release);
 
   if ((fd = mkstemp(tmpf_template)) == -1) {
     fprintf(stderr, "mkstemp() can't create temporary file\n");
@@ -55,8 +61,8 @@ print_osinfo()
   }
 
   memset(tmpf_name, 0, sizeof(tmpf_name));
-  sprintf(fd_path, "/proc/%d/fd/%d", getpid(), fd);
-  readlink(fd_path, tmpf_name, sizeof(tmpf_name));
+  sprintf(tmpf_fd_path, "/proc/%d/fd/%d", getpid(), fd);
+  readlink(tmpf_fd_path, tmpf_name, sizeof(tmpf_name));
 
   switch (child = fork()) {
     case -1:
@@ -74,10 +80,14 @@ print_osinfo()
   tmpf_stream = fdopen(fd, "r");
 
   char *col_names[] = {"Название дистрибутива:", "Релиз:", "Кодовое название:"};
-  int len = (sizeof(col_names) / sizeof(col_names[0]));
 
-  while (fgets(tmpf_buffer, sizeof(tmpf_buffer), tmpf_stream)) {
-    printf("%s %s", col_names[index++], tmpf_buffer);
+  //while (fgets(sys.tmpf_buffer, sizeof(sys.tmpf_buffer), tmpf_stream));
+  //printf("%s\n", sys.tmpf_buffer);
+
+  int nb;
+  nb = read(fd, sys.tmpf_buffer, sizeof(sys.tmpf_buffer));
+  while (0 < 3) {
+  printf("%s %s\n", col_names[index++], sys.tmpf_buffer);
   }
 
   if (unlink(tmpf_name) == -1) {
@@ -85,17 +95,17 @@ print_osinfo()
     exit(1);
   }
 
-  printf("\nИмя хоста: %s\n", un.nodename);
-  printf("Имя домена: %s\n", un.__domainname);
-  printf("Архитектура: %s\n", un.machine);
+  //printf("\nИмя хоста: %s\n", un.nodename);
+  //printf("Имя домена: %s\n", un.__domainname);
+  //printf("Архитектура: %s\n", un.machine);
 }
 
+
 static void
-print_currenttime()
+currenttime()
 {
   struct timeval tval;   /* gettimeofday */
   struct tm *ptm;        /* localtime    */
-  char time_string[15];
 
   /* определяет текущее системной время - секунды */
   gettimeofday(&tval, NULL);
@@ -105,16 +115,17 @@ print_currenttime()
   структуры timeval */
   ptm = localtime(&tval.tv_sec);
 
-  /* осуществляет формат данных в time_string */
-  strftime(time_string, sizeof(time_string), "%H:%M:%S", ptm);
-  printf("Время запроса %s\n\n", time_string);
+  /* осуществляет форматирование данных в time_string */
+  strftime(sys.time_string, sizeof(sys.time_string), "%H:%M:%S", ptm);
 }
 
 int main(void)
 {
-  print_currenttime();
-  print_osinfo();
-  print_sysinfo();
+  currenttime();
+  osinfo();
+
+  //print_osinfo();
+  //print_sysinfo();
 
   return 0;
 }
