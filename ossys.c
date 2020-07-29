@@ -12,9 +12,23 @@
 
 struct system_info {
   char time_string[15];
-  char tmpf_buffer[124];
+  char tmpf_buffer[256];
+  char *os;
+  char *hostname;
+  char *domain;
+  char *arch;
 } sys;
 
+static void
+print_info()
+{
+  //printf("Операционная система: %s\n", sys.os);
+  //printf("Имя хоста: %s\n", sys.hostname);
+  //printf("Имя домена: %s\n", sys.domain);
+  //printf("Архитектура: %s\n", sys.arch);
+}
+
+/*
 static void
 print_sysinfo()
 {
@@ -36,24 +50,19 @@ print_sysinfo()
   fgets(loadavg_buffer, sizeof(loadavg_buffer), loadavg_stream);
   printf("Общая загруженность: %s", loadavg_buffer);
 }
+*/
 
 static void
 osinfo()
 {
+  int fd, nb;
+  char tmpf_template[] = "/tmp/dinfo-XXXXXX";
+  char script_name[] = "info.sh";
+  char tmpf_fd_path[20];
+  char tmpf_name[24];
   struct utsname un;
   uname(&un);
   pid_t child;
-
-  FILE *tmpf_stream;
-  int fd, index = 0;
-
-  char tmpf_template[] = "/tmp/dinfo-XXXXXX";
-  char script_name[] = "info.sh";
-  char tmpf_fd_path[32];
-  char tmpf_name[32];
-
-  //printf("Операционная система: %s\n", un.sysname);
-  //printf("Версия ядра: %s\n", un.release);
 
   if ((fd = mkstemp(tmpf_template)) == -1) {
     fprintf(stderr, "mkstemp() can't create temporary file\n");
@@ -76,18 +85,9 @@ osinfo()
       wait(NULL);
   }
 
-  /* конверт файлогово дескриптора в поток */
-  tmpf_stream = fdopen(fd, "r");
-
-  char *col_names[] = {"Название дистрибутива:", "Релиз:", "Кодовое название:"};
-
-  //while (fgets(sys.tmpf_buffer, sizeof(sys.tmpf_buffer), tmpf_stream));
-  //printf("%s\n", sys.tmpf_buffer);
-
-  int nb;
-  nb = read(fd, sys.tmpf_buffer, sizeof(sys.tmpf_buffer));
-  while (0 < 3) {
-  printf("%s %s\n", col_names[index++], sys.tmpf_buffer);
+  if (nb = read(fd, sys.tmpf_buffer, sizeof(sys.tmpf_buffer)) == -1) {
+    fprintf(stderr, "read() can't read temporary file\n");
+    exit(1);
   }
 
   if (unlink(tmpf_name) == -1) {
@@ -95,8 +95,15 @@ osinfo()
     exit(1);
   }
 
+  /*
+  sys.os = un.sysname;
+  sys.hostname = un.nodename;
+  sys.domain = un.__domainname;
+  sys.arch = un.machine;
+  */
+  //printf("Операционная система: %s\n", un.sysname);
   //printf("\nИмя хоста: %s\n", un.nodename);
-  //printf("Имя домена: %s\n", un.__domainname);
+  //printf("---Имя домена: %s\n", sys.domain);
   //printf("Архитектура: %s\n", un.machine);
 }
 
@@ -123,9 +130,7 @@ int main(void)
 {
   currenttime();
   osinfo();
-
-  //print_osinfo();
-  //print_sysinfo();
+  //print_info();
 
   return 0;
 }
