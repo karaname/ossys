@@ -10,58 +10,97 @@
 #include <fcntl.h>
 #include <time.h>
 
-struct system_info {
-  char time_string[15];
-  char tmpf_buffer[256];
-  char *os;
-  char *hostname;
-  char *domain;
-  char *arch;
+static struct system_info {
+  char time_buf[16];
+  char tmpf_buf[128];
+  char loadavg_buf[64];
+  char osname[16];
+  char hostname[32];
+  char domain[32];
+  char arch[16];
+  char ramtot[8];
+  char ramfree[8];
+  char cprocs[8];
+  char tty_buf[12];
 } sys;
+
+static struct env_info {
+  char *dskt_session;
+  char *shell;
+} genv;
 
 static void
 print_info()
 {
-  //printf("Операционная система: %s\n", sys.os);
-  //printf("Имя хоста: %s\n", sys.hostname);
-  //printf("Имя домена: %s\n", sys.domain);
-  //printf("Архитектура: %s\n", sys.arch);
-}
+  printf("Время запроса: %s\n", sys.time_buf);
+  puts("-----------------------");
+  printf("Операционная система: %s\n", sys.osname);
 
-/*
-static void
-print_sysinfo()
-{
-  FILE *loadavg_stream;
-  char loadavg_buffer[124];
-  const double megabyte = 1024 * 1024;
-  struct sysinfo info;
+  char *row_names[] = {"Название дистрибутива:", "Релиз:", "Кодовое название:"};
+  char *dbuf = sys.tmpf_buf;
 
-  if (sysinfo(&info) == -1) {
-    fprintf(stderr, "sysinfo() can't get system information\n");
-    exit(1);
+  for (int b, i = 0; *dbuf; dbuf++) {
+    if (b) { printf("%s ", row_names[i++]); b = 0; }
+    if (*dbuf == '\n') { b = 1; }
+    putchar(*dbuf);
   }
 
-  printf("\nДоступно ОЗУ: %.1f\n", info.totalram / megabyte);
-  printf("Свободно ОЗУ: %.1f\n", info.freeram / megabyte);
-  printf("Кол-во процессов (вместе с потоками): %d\n", info.procs);
-
-  loadavg_stream = fopen("/proc/loadavg", "r");
-  fgets(loadavg_buffer, sizeof(loadavg_buffer), loadavg_stream);
-  printf("Общая загруженность: %s", loadavg_buffer);
+  printf("Имя хоста: %s\n", sys.hostname);
+  printf("Имя домена: %s\n", sys.domain);
+  printf("Архитектура: %s\n", sys.arch);
+  printf("Доступно ОЗУ: %s\n", sys.ramtot);
+  printf("Свободно ОЗУ: %s\n", sys.ramfree);
+  printf("Кол-во процессов (вместе с потоками): %s\n", sys.cprocs);
+  printf("Общая загруженность: %s", sys.loadavg_buf);
+  printf("Графическая среда: %s\n", genv.dskt_session);
+  printf("Оболочка: %s\n", genv.shell);
+  printf("Файл терминала: %s\n", sys.tty_buf);
 }
-*/
 
 static void
-osinfo()
+get_tty()
+{
+  char *self = "/proc/self/fd/0";
+  readlink(self, sys.tty_buf, sizeof(sys.tty_buf));
+}
+
+static void
+get_envinfo()
+{
+  genv.dskt_session = getenv("DESKTOP_SESSION");
+  genv.shell = getenv("SHELL");
+}
+
+static void
+get_sysinfo()
+{
+  FILE *loadavg_stream;
+  const double megabyte = 1024 * 1024;
+  struct sysinfo info;
+  struct utsname un;
+  sysinfo(&info);
+  uname(&un);
+
+  loadavg_stream = fopen("/proc/loadavg", "r");
+  fgets(sys.loadavg_buf, sizeof(sys.loadavg_buf), loadavg_stream);
+
+  sprintf(sys.ramtot, "%.1f", info.totalram / megabyte);
+  sprintf(sys.ramfree, "%.1f", info.freeram / megabyte);
+  sprintf(sys.cprocs, "%d", info.procs);
+  sprintf(sys.osname, "%s", un.sysname);
+  sprintf(sys.hostname, "%s", un.nodename);
+  sprintf(sys.domain, "%s", un.__domainname);
+  sprintf(sys.arch, "%s", un.machine);
+}
+
+static void
+get_distroinfo()
 {
   int fd, nb;
   char tmpf_template[] = "/tmp/dinfo-XXXXXX";
   char script_name[] = "info.sh";
   char tmpf_fd_path[20];
   char tmpf_name[24];
-  struct utsname un;
-  uname(&un);
   pid_t child;
 
   if ((fd = mkstemp(tmpf_template)) == -1) {
@@ -85,7 +124,7 @@ osinfo()
       wait(NULL);
   }
 
-  if (nb = read(fd, sys.tmpf_buffer, sizeof(sys.tmpf_buffer)) == -1) {
+  if (nb = read(fd, sys.tmpf_buf, sizeof(sys.tmpf_buf)) == -1) {
     fprintf(stderr, "read() can't read temporary file\n");
     exit(1);
   }
@@ -94,22 +133,10 @@ osinfo()
     fprintf(stderr, "unlink() can't remove temporary file\n");
     exit(1);
   }
-
-  /*
-  sys.os = un.sysname;
-  sys.hostname = un.nodename;
-  sys.domain = un.__domainname;
-  sys.arch = un.machine;
-  */
-  //printf("Операционная система: %s\n", un.sysname);
-  //printf("\nИмя хоста: %s\n", un.nodename);
-  //printf("---Имя домена: %s\n", sys.domain);
-  //printf("Архитектура: %s\n", un.machine);
 }
 
-
 static void
-currenttime()
+get_currenttime()
 {
   struct timeval tval;   /* gettimeofday */
   struct tm *ptm;        /* localtime    */
@@ -122,15 +149,18 @@ currenttime()
   структуры timeval */
   ptm = localtime(&tval.tv_sec);
 
-  /* осуществляет форматирование данных в time_string */
-  strftime(sys.time_string, sizeof(sys.time_string), "%H:%M:%S", ptm);
+  /* осуществляет форматирование данных в time_buf */
+  strftime(sys.time_buf, sizeof(sys.time_buf), "%H:%M:%S", ptm);
 }
 
 int main(void)
 {
-  currenttime();
-  osinfo();
-  //print_info();
+  get_currenttime();
+  get_distroinfo();
+  get_sysinfo();
+  get_envinfo();
+  get_tty();
+  print_info();
 
   return 0;
 }
