@@ -21,8 +21,8 @@ format_uptime(long time)
   const long minute = 60;
   const long hour = minute * 60;
   const long day = hour * 24;
-  sprintf(sys.uptime_buf, "%ld days, %ld:%02ld:%02ld", time / day, (time % day) / hour,
-    (time % hour) / minute, time % minute);
+  sprintf(sys.uptime_buf, "%ld days, %ld:%02ld:%02ld", time / day,
+    (time % day) / hour, (time % hour) / minute, time % minute);
 }
 
 static void
@@ -125,12 +125,10 @@ get_currenttime()
 
   /* определяет текущее системной время - секунды */
   gettimeofday(&tval, NULL);
-
   /* возвращает структуру типа tm, принимает
   в роли аргумента число секунд -> поле tv_sec
   структуры timeval */
   ptm = localtime(&tval.tv_sec);
-
   /* осуществляет форматирование данных в ctime_buf */
   strftime(sys.ctime_buf, sizeof(sys.ctime_buf), "%H:%M:%S", ptm);
 }
