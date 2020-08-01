@@ -21,7 +21,7 @@ format_uptime(long time)
   const long minute = 60;
   const long hour = minute * 60;
   const long day = hour * 24;
-  sprintf(sys.uptime_buf, "%ld days, %ld:%ld:%ld", time / day, (time % day) / hour,
+  sprintf(sys.uptime_buf, "%ld days, %ld:%02ld:%02ld", time / day, (time % day) / hour,
     (time % hour) / minute, time % minute);
 }
 
