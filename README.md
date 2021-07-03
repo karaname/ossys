@@ -1,28 +1,23 @@
 ## Introduction
 ```
-git clone https://github.com/karaname/ossys.git
-cd ossys/ && make
-sudo make install
-ossys
+git clone https://github.com/karaname/sysinfo.git
+cd sysinfo && make && ./sysinfo
 ```
 
 ### Output Example
 ```
-Время запроса: 15:58:55
+Current time: 23:48:09
 -----------------------
-Операционная система: Linux
-Название дистрибутива: Manjaro Linux
-Релиз: 20.0.3
-Кодовое название: Lysia
-Имя хоста: test-pc
-Имя домена: (none)
-Архитектура: x86_64
-Доступно ОЗУ: 7928.3
-Свободно ОЗУ: 6200.2
-Время работы: 0 days, 0:08:59
-Кол-во процессов (вместе с потоками): 390
-Общая загруженность: 0.78 0.91 0.56 1/390 1808
-Графическая среда: xfce
-Оболочка: /bin/bash
-Файл терминала: /dev/pts/1
+OS: Linux
+Hostname: my_laptop
+Domain name: (none)
+Machine hardware: x86_64
+RAM Total: 7412
+RAM Free: 5596
+Uptime: 0 days, 2:21:48
+Number of current processes: 465
+Load average: 0.50 0.55 0.44 1/465 5592
+Desktop environment: xfce
+Shell: /bin/bash
+tty: /dev/pts/1
 ```
